@@ -31,4 +31,12 @@
 
 ```
 
-### [Sceenshot](https://github.com/adi-kal/cjproject1/blob/master/src/main/resources/run.png)
+## Screenshot
+[![](https://github.com/adi-kal/cjproject1/blob/master/src/main/resources/run.png)]
+
+## References
+### Group Members
+- aditya kolhapure
+- hanmantappa paramshetti
+### College
+- SES Polytechnic
