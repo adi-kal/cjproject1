@@ -1,5 +1,13 @@
 # Flight Booking
 
+### Group Members
+- Aditya Kolhapure
+- Hanmantappa Paramshetti
+
+
+### College
+- SES Polytechnic
+
 ### A simple CRUD console-based Java application that allow flight booking,search flights,login,admin panel(console based).
 ------------
 
@@ -16,7 +24,7 @@
 ## # 👻 prerequisite
 - ####  Postgresql (16+)
 - #### JDBC
-- #### Java
+- #### Java (21)
 - #### IDE (eclipse,Intellij)
 
 ------------
@@ -33,10 +41,3 @@
 
 ## Screenshot
 [![](https://github.com/adi-kal/cjproject1/blob/master/src/main/resources/run.png)]
-
-## References
-### Group Members
-- aditya kolhapure
-- hanmantappa paramshetti
-### College
-- SES Polytechnic
