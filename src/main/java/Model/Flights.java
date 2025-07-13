@@ -30,6 +30,20 @@ public class Flights {
         this.price = price;
     }
 
+    public Flights(String flight_no, String name, int capacity, String seats, Integer from_city_id, Integer to_city_id, Integer price, LocalDate departure_date, LocalTime departure_time, LocalDate arrival_date, LocalTime arrival_time) {
+        this.flight_no = flight_no;
+        this.name = name;
+        this.capacity = capacity;
+        this.seats = seats;
+        this.from_city_id = from_city_id;
+        this.to_city_id = to_city_id;
+        this.price = price;
+        this.departure_date = departure_date;
+        this.departure_time = departure_time;
+        this.arrival_date = arrival_date;
+        this.arrival_time = arrival_time;
+    }
+
 
     public String getSeats() {
         return seats;
@@ -37,6 +51,10 @@ public class Flights {
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void setSeats(String seats) {

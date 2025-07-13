@@ -1,11 +1,14 @@
 import Model.*;
+import org.w3c.dom.ls.LSOutput;
 
-import java.io.Console;
 import java.sql.*;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
@@ -113,27 +116,30 @@ public class Main {
     }
 
     private void flightbook() {
-        String email = null;
-        String password = null;
 
-        if(email == null && password == null){
-            int created = signupNewUser();
-            if(created == 1){
-                System.out.println("new user created you can not login");
-            }else{
-                System.out.println("user may already exist or error occured");
+        Scanner console = new Scanner(System.in);
+        System.out.println("do you have an account? (1:: yes | 2:: no)");
+
+        int haveAccount = console.nextInt();
+
+        if(haveAccount != 1){
+            if(createUser() != 1){
+                System.out.println("failed to signup retry");
+                return;
             }
         }
 
-        Console console = System.console();
-        if(console == null){
-            System.out.println("error opening console");
-            return;
-        }
-        email = console.readLine();
-        password = Arrays.toString(console.readPassword());
+        System.out.println("login to your account");
+        System.out.println("enter email");
+        String email = console.next();
+        System.out.println("enter password");
+        String password = console.next();
 
         Member mem = getMember(email,password);
+        if(mem.getId() == null){
+            System.out.println("member not exist");
+            System.exit(1);
+        }
         Scanner sc = new Scanner(System.in);
 
         Map<String,Object> selectedFlight = new HashMap<>();
@@ -149,8 +155,11 @@ public class Main {
         }
         selectedFlight.put("to_city_id",sc.nextInt());
 
-        System.out.println("enter travel date (use format:: yyyy-MM-dd");
-        selectedFlight.put("date", LocalDate.parse(sc.next(), ofPattern("yyyy-MM-dd")));
+        System.out.println("enter travel date (use format:: yyyy-MM-dd)");
+        String travelDate = sc.next();
+
+        selectedFlight.put("date", getLocalDate(travelDate));
+        System.out.println(selectedFlight.get("date"));
 
         System.out.println("choose flight");
         List<Flights> availableFlights = findFlight(selectedFlight);
@@ -184,45 +193,68 @@ public class Main {
         }
         selectedFlight.put("seat_no",sc.next());
         updateAvailableSeats(selectedFlight);
-        selectedFlight.put("passenger_details",passenger);
         addTravelerDetails(passenger);
-        //add remaining data require for booking table
-        Flights myFlight = findFlightById((Integer)selectedFlight.get("flight_id"));
+        Flights myFlight = findFlightById(Integer.parseInt(selectedFlight.get("flight_id").toString()));
         selectedFlight.put("price",myFlight.getPrice());
         selectedFlight.put("ticketno",generate_random_ticket());
-        selectedFlight.put("date",myFlight.getDeparture_date());
-        selectedFlight.put("time",myFlight.getDeparture_time());
+        selectedFlight.put("date",myFlight.getDeparture_date().toString());
+        selectedFlight.put("time",myFlight.getDeparture_time().toString());
         selectedFlight.put("member_id",mem.getId());
         Traveler thist = getThisTravelerId(mem,passenger);
         selectedFlight.put("traveler_id",thist.getId());
 
-        if(bookTheFlight(selectedFlight)==1){
-            System.out.println("flight booked successfully");
-        }
-        System.out.println("error booking flight try later");
-        return;
+        Integer flightBooked = bookTheFlight(selectedFlight);
 
+        if (flightBooked == 1) {
+            System.out.println("flight booked");
+        } else {
+            System.out.println("flight not booked");
+        }
 
     }
 
-    private Integer bookTheFlight(Map<String, Object> selectedFlight) {
+
+    private Integer bookTheFlight(Map<String, Object> sf) {
         Callable<Integer> bookingOfFlight = () -> {
-            PreparedStatement ps = getConnection().prepareStatement("insert into bookings (traveler_id,flight_id,ticketno,date,price,from_city_id,to_city_id,member_id,time,seatno)" +
-                    "values (?,?,?,?,?,?,?,?,?,?)");
-            ps.setInt(1,(int) selectedFlight.get("traveler_id"));
-            ps.setInt(2,(int) selectedFlight.get("flight_id"));
-            ps.setString(3,selectedFlight.get("ticketno").toString());
-            ps.setString(4,selectedFlight.get("date").toString());
-            ps.setString(5,selectedFlight.get("price").toString());
-            ps.setInt(6,(int)selectedFlight.get("from_city_id"));
-            ps.setInt(7,(int)selectedFlight.get("to_city_id"));
-            ps.setInt(8,(int)selectedFlight.get("member_id"));
-            ps.setString(9,selectedFlight.get("time").toString());
-            ps.setString(10,selectedFlight.get("seatno").toString());
+
+            Bookings flight_to_book = new Bookings(
+                    Integer.parseInt(sf.get("member_id").toString()),
+                    Integer.parseInt(sf.get("traveler_id").toString()),
+                    Integer.parseInt(sf.get("flight_id").toString()),
+                    sf.get("ticketno").toString(),
+                    getLocalDate(sf.get("date").toString()),
+                    sf.get("seat_no").toString(),
+                    getLocalTime(sf.get("time").toString()),
+                    Integer.parseInt(sf.get("price").toString()),
+                    Integer.parseInt(sf.get("from_city_id").toString()),
+                    Integer.parseInt(sf.get("to_city_id").toString())
+            );
+
+
+            PreparedStatement ps = getConnection().prepareStatement(
+                    "insert into bookings (traveler_id,flight_id,ticketno,date,price,from_city_id,to_city_id,member_id,time,seatno)" +
+                            "values (?,?,?,make_date(?,?,?),?,?,?,?,make_time(?,?,?),?)"
+            );
+
+            ps.setInt(1,flight_to_book.getTraveler_id());
+            ps.setInt(2,flight_to_book.getFlight_id());
+            ps.setString(3,flight_to_book.getTicketno());
+            ps.setInt(4,flight_to_book.getDate().getYear());
+            ps.setInt(5,flight_to_book.getDate().getMonthValue());
+            ps.setInt(6,flight_to_book.getDate().getDayOfMonth());
+            ps.setInt(7,flight_to_book.getPrice());
+            ps.setInt(8,flight_to_book.getFrom_city_id());
+            ps.setInt(9,flight_to_book.getTo_city_id());
+            ps.setInt(10,flight_to_book.getMember_id());
+            ps.setInt(11,flight_to_book.getTime().getHour());
+            ps.setInt(12,flight_to_book.getTime().getMinute());
+            ps.setInt(13,flight_to_book.getTime().getSecond());
+            ps.setString(14,flight_to_book.getSeatno());
             return ps.executeUpdate();
+
         };
 
-        Future<Integer> booked = ThreadManager.executeThread(Integer.valueOf(1),bookingOfFlight);
+        Future<Integer> booked = ThreadManager.executeThread(1,bookingOfFlight);
         try{
             if(booked.isDone()){
                 return booked.get();
@@ -236,8 +268,8 @@ public class Main {
 
     private Traveler getThisTravelerId(Member mem, Traveler passenger) {
         Callable<Traveler> tid = () -> {
-            PreparedStatement ps = getConnection().prepareStatement("select * from traveler where member_id = ? and name = ? and surname = ? order by created desc limit 1");
-            ps.setInt(1,mem.getId().intValue());
+            PreparedStatement ps = getConnection().prepareStatement("select * from traveler where member_id = ? and first_name = ? and surname = ? order by created desc limit 1");
+            ps.setInt(1,Integer.parseInt(mem.getId().toString()));
             ps.setString(2,passenger.getFirst_name());
             ps.setString(3,passenger.getSurname());
             ResultSet rs = ps.executeQuery();
@@ -291,6 +323,13 @@ public class Main {
                         rs.getInt("to_city_id"),
                         rs.getInt("price")
                 );
+
+                idFlight.setDeparture_date(getLocalDate(rs.getString("departure_date")));
+                idFlight.setArrival_date(getLocalDate(rs.getString("arrival_date")));
+
+                idFlight.setDeparture_time(getLocalTime(rs.getString("departure_time")));
+                idFlight.setArrival_time(getLocalTime(rs.getString("arrival_time")));
+
             }
             return idFlight;
         };
@@ -356,31 +395,38 @@ public class Main {
 
         Callable<List<Flights>> lookFlights = () -> {
 
-            String[] date = selectedFlight.get("date").toString().split("-");
+            LocalDate date =(LocalDate) selectedFlight.get("date");
             PreparedStatement ps = getConnection().prepareStatement("select * from flight where from_city_id = ? and to_city_id = ? and departure_date = make_date(?,?,?)");
-            ps.setString(1,selectedFlight.get("from_city_id").toString());
-            ps.setString(2,selectedFlight.get("to_city_id").toString());
-            ps.setString(3,date[0]);
-            ps.setString(4,date[1]);
-            ps.setString(5,date[2]);
+            ps.setInt(1,Integer.parseInt(selectedFlight.get("from_city_id").toString()));
+            ps.setInt(2,Integer.parseInt(selectedFlight.get("to_city_id").toString()));
+            ps.setInt(3, date.getYear());
+            ps.setInt(4, date.getMonthValue());
+            ps.setInt(5, date.getDayOfMonth());
             ResultSet rs = ps.executeQuery();
 
             List<Flights> availableFlights = new LinkedList<>();
             while(rs.next()){
-                Flights flight = new Flights(
-                        rs.getLong("id"),
-                        rs.getString("flight_no"),
-                        rs.getString("name"),
-                        rs.getInt("capacity"),
-                        rs.getString("seats"),
-                        rs.getInt("from_city_id"),
-                        rs.getInt("to_city_id"),
-                        rs.getInt("price"));
-                flight.setDeparture_date(LocalDate.parse(rs.getString("departure_date"),DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-                flight.setArrival_date(LocalDate.parse(rs.getString("arrival_date"),DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-                flight.setDeparture_time(LocalTime.parse(rs.getString("departure_time"), DateTimeFormatter.ofPattern("HH:mm:ss")));
-                flight.setArrival_time(LocalTime.parse(rs.getString("arrival_time"), DateTimeFormatter.ofPattern("HH:mm:ss")));
-                availableFlights.add(flight);
+                Flights f = new Flights();
+                f.setId(rs.getLong("id"));
+                f.setFlight_no(rs.getString("flight_no"));
+                f.setName(rs.getString("name"));
+                f.setCapacity(rs.getInt("capacity"));
+                f.setFrom_city_id(rs.getInt("from_city_id"));
+                f.setTo_city_id(rs.getInt("to_city_id"));
+                f.setSeats(rs.getString("seats"));
+                f.setPrice(rs.getInt("price"));
+
+                Time Dtime = rs.getTime("departure_time");
+                Time Atime = rs.getTime("arrival_time");
+
+                f.setDeparture_date(getLocalDate(rs.getString("departure_date")));
+                f.setDeparture_time(Dtime.toLocalTime());
+
+                f.setArrival_date(getLocalDate(rs.getString("arrival_date")));
+                f.setArrival_time(Atime.toLocalTime());
+
+                availableFlights.add(f);
+
             }
 
             return availableFlights;
@@ -457,14 +503,13 @@ public class Main {
             String username = null;
             String email = null;
             String password = null;
-            Console console = System.console();
-            if(console == null){
-                System.out.println("error opening console");
-                return 0;
-            }
-            username = console.readLine("enter username");
-            email = console.readLine("enter email");
-            password = Arrays.toString(console.readPassword("enter password"));
+            Scanner console = new Scanner(System.in);
+            System.out.println("enter username");
+            username = console.next();
+            System.out.println("enter email");
+            email = console.next();
+            System.out.println("enter password");
+            password = console.next();
 
             Connection con = getConnection();
             PreparedStatement ps = con.prepareStatement("insert into member (username,email,password) values (?,?,?)");
@@ -803,4 +848,43 @@ public class Main {
         }
         return con;
     }
+
+    private LocalDate getLocalDate(String date){
+        String[] dateArray = date.split("-");
+        return LocalDate.of(Integer.parseInt(dateArray[0]),Integer.parseInt(dateArray[1]),Integer.parseInt(dateArray[2]));
+    }
+
+    private LocalTime getLocalTime(String time){
+        String[] timeArray = time.split(":");
+        return LocalTime.of(Integer.parseInt(timeArray[0]),Integer.parseInt(timeArray[1]),Integer.parseInt(timeArray[2]));
+    }
+
+    private Integer createUser() {
+
+        Callable<Integer> createMember = () -> {
+
+            Scanner sc = new Scanner(System.in);
+            PreparedStatement ps = getConnection().prepareStatement("insert into member (username,password,email) values (?,?,?)");
+            System.out.println("enter username");
+            ps.setString(1,sc.next());
+            System.out.println("enter password");
+            ps.setString(2,sc.next());
+            System.out.println("enter email");
+            ps.setString(3,sc.next());
+
+            return ps.executeUpdate();
+        };
+
+        Future<Integer> created = ThreadManager.executeThread(1,createMember);
+        try{
+            if(created.isDone()){
+                return created.get();
+            }
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+
+        return 0;
+    }
+
 }

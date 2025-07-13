@@ -17,7 +17,7 @@ public class Bookings {
     private Integer from_city_id; //--------
     private Integer to_city_id; //
 
-    public Bookings(Integer member_id, Integer traveler_id, Integer flight_id, String ticketno, LocalDate date,String seatno, LocalTime time, Integer price, Integer from_city_id, Integer to_city_id, Integer passenger) {
+    public Bookings(Integer member_id, Integer traveler_id, Integer flight_id, String ticketno, LocalDate date,String seatno, LocalTime time, Integer price, Integer from_city_id, Integer to_city_id) {
         this.member_id = member_id;
         this.traveler_id = traveler_id;
         this.flight_id = flight_id;
