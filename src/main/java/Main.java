@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import static java.time.format.DateTimeFormatter.ofPattern;
 
@@ -358,12 +359,12 @@ public class Main {
                 previousSeats = rs.getString("seats").split(",");
             }
 
-            String[] newAvailableSeats = Arrays.stream(previousSeats).filter((i) -> !i.equals(selectedFlight.get("seat_no")))
-                    .toArray(String[]::new);
+            List<String> newAvailableSeats = Arrays.stream(previousSeats).filter((i) -> !i.equals(selectedFlight.get("seat_no")))
+                    .collect(Collectors.toList());
 
             Callable<Integer> updateSeats = () -> {
                 PreparedStatement psinner = con.prepareStatement("update flight set seats = ? where id = ?");
-                psinner.setString(1, Arrays.toString(newAvailableSeats));
+                psinner.setString(1, getUpdatedSeats(newAvailableSeats));
                 psinner.setString(2,selectedFlight.get("flight_id").toString());
                 return psinner.executeUpdate();
             };
@@ -389,6 +390,17 @@ public class Main {
         }
 
         return null;
+    }
+
+    private String getUpdatedSeats(List<String> data) {
+
+        String newseats = "";
+
+        for(String s : data){
+            newseats = newseats + s + ",";
+        }
+
+        return new StringBuilder(newseats).deleteCharAt(newseats.length() - 1).toString();
     }
 
     private List<Flights> findFlight(Map<String, Object> selectedFlight) {
