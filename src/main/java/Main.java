@@ -1,14 +1,9 @@
 import Model.*;
-import org.w3c.dom.ls.LSOutput;
 
 import java.sql.*;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.Date;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -78,11 +73,11 @@ public class Main {
                 innerps.setLong(1, finalMem.getId());
                 ResultSet innerrs = innerps.executeQuery();
 
-                List<Bookings> usrbookings = null;
+                List<Bookings> usrbookings = new LinkedList<>();
                 while(innerrs.next()){
                     usrbookings.add(new Bookings(innerrs.getLong("id"),innerrs.getInt("member_id"),
-                            innerrs.getInt("traveler_id"),innerrs.getInt("flight_id"),innerrs.getString("ticketmno"),
-                            rs.getString("seatno"),innerrs.getInt("price"),innerrs.getInt("from_city_id"),
+                            innerrs.getInt("traveler_id"),innerrs.getInt("flight_id"),innerrs.getString("ticketno"),
+                            innerrs.getString("seatno"),innerrs.getInt("price"),innerrs.getInt("from_city_id"),
                             innerrs.getInt("to_city_id")));
                 }
 
@@ -868,7 +863,7 @@ public class Main {
 
     private LocalTime getLocalTime(String time){
         String[] timeArray = time.split(":");
-        return LocalTime.of(Integer.parseInt(timeArray[0]),Integer.parseInt(timeArray[1]),Integer.parseInt(timeArray[2]));
+        return LocalTime.of(Integer.parseInt(timeArray[0]),Integer.parseInt(timeArray[1]));
     }
 
     private Integer createUser() {
